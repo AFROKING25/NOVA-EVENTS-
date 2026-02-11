@@ -1,0 +1,8 @@
+{
+  "name": "Copy of NOVA EVENTS by AFROKING™",
+  "description": "A premium event management and contribution tracking platform for Tanzanian events, supporting both automated and USSD-based manual payments.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
