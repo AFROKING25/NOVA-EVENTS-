@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import Dashboard from './pages/Dashboard';
 import CreateEvent from './pages/CreateEvent';
 import DesignCard from './pages/DesignCard';
@@ -13,51 +12,53 @@ import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import Navigation from './components/Navigation';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-gold-500/20 border-t-gold-500 rounded-full animate-spin mx-auto"></div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-gold-500 animate-pulse">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
+const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
+  const user = localStorage.getItem('nova_user');
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
   return <>{children}</>;
 };
 
 const AppContent = () => {
-  const { user, profile, signOut } = useAuth();
+  const [user, setUser] = useState<any>(JSON.parse(localStorage.getItem('nova_user') || 'null'));
   const location = useLocation();
   const isGuestView = location.pathname.startsWith('/e/');
 
+  const handleLogin = (userData: any) => {
+    localStorage.setItem('nova_user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('nova_user');
+    setUser(null);
+  };
+
+  const handleUpdateUser = (updatedUser: any) => {
+    localStorage.setItem('nova_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      {!isGuestView && user && <Navigation onLogout={signOut} user={profile} />}
+      {!isGuestView && user && <Navigation onLogout={handleLogout} user={user} />}
       <main className="flex-grow container mx-auto px-4 py-6">
         <Routes>
-          <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth onLogin={() => {}} />} />
-
+          <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth onLogin={handleLogin} />} />
+          
           <Route path="/" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           } />
-
+          
           <Route path="/create" element={
             <ProtectedRoute>
               <CreateEvent />
             </ProtectedRoute>
           } />
-
+          
           <Route path="/design-card/:eventId" element={
             <ProtectedRoute>
               <DesignCard />
@@ -69,13 +70,13 @@ const AppContent = () => {
               <CardLayoutEditor />
             </ProtectedRoute>
           } />
-
+          
           <Route path="/card-preview/:eventId" element={
             <ProtectedRoute>
               <CardPreview />
             </ProtectedRoute>
           } />
-
+          
           <Route path="/setup-payments/:eventId" element={
             <ProtectedRoute>
               <SetupPayments />
@@ -90,12 +91,12 @@ const AppContent = () => {
 
           <Route path="/profile" element={
             <ProtectedRoute>
-              <Profile />
+              <Profile user={user} onUpdateUser={handleUpdateUser} />
             </ProtectedRoute>
           } />
-
-          <Route path="/e/:eventId/:secureToken" element={<ContributionPage />} />
-
+          
+          <Route path="/e/:eventId/:guestId" element={<ContributionPage />} />
+          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
@@ -109,9 +110,7 @@ const AppContent = () => {
 const App = () => {
   return (
     <HashRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppContent />
     </HashRouter>
   );
 };

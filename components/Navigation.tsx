@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import type { Database } from '../src/lib/database.types';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface NavigationProps {
   onLogout: () => void;
-  user: any;
+  user: Profile | null;
 }
 
 const Navigation = ({ onLogout, user }: NavigationProps) => {
@@ -27,7 +30,7 @@ const Navigation = ({ onLogout, user }: NavigationProps) => {
 
         <div className="flex items-center gap-5">
           <Link to="/profile" className="w-8 h-8 bg-zinc-900 border border-white/10 rounded-full flex items-center justify-center text-[10px] font-black text-white overflow-hidden uppercase">
-            {user?.name?.[0]}
+            {user?.full_name?.[0] || user?.email?.[0] || 'U'}
           </Link>
           <button onClick={onLogout} className="text-zinc-500 hover:text-white transition-colors">
              <i className="fas fa-sign-out-alt text-lg"></i>
