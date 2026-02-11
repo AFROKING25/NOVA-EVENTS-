@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../src/contexts/AuthContext';
-import { EventService } from '../src/lib/services/EventService';
-import { GuestService } from '../src/lib/services/GuestService';
+import { addEvent, addGuest } from '../data/store';
+import { Event, PaymentStatus, EventVisibility, Guest, EventLocation } from '../types';
 import { searchLocations, MapSearchResult } from '../services/geminiService';
 
 const EVENT_TYPES = [
@@ -18,14 +18,14 @@ const EVENT_TYPES = [
 
 const CreateEvent = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
+  
   const [formData, setFormData] = useState({
     name: '',
     type: 'Wedding',
     customType: '',
     date: '',
-    locations: [] as { label: string; url: string }[]
+    visibility: EventVisibility.PRIVATE,
+    locations: [] as EventLocation[]
   });
 
   const [locationQuery, setLocationQuery] = useState('');
@@ -40,12 +40,12 @@ const CreateEvent = () => {
   const [importing, setImporting] = useState<string | null>(null);
   const [csvData, setCsvData] = useState<{ headers: string[], rows: string[][] } | null>(null);
   const [mapping, setMapping] = useState({ name: -1, phone: -1, pledge: -1 });
-  const [saving, setSaving] = useState(false);
 
+  // Debounced Location Search
   useEffect(() => {
     if (locationQuery.length > 3) {
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
-
+      
       setIsSearchingLocation(true);
       searchTimeout.current = setTimeout(async () => {
         const results = await searchLocations(locationQuery);
@@ -63,7 +63,7 @@ const CreateEvent = () => {
   }, [locationQuery]);
 
   const handleSelectLocation = (result: MapSearchResult) => {
-    const newLocation = {
+    const newLocation: EventLocation = {
       label: result.name,
       url: result.url
     };
@@ -117,7 +117,7 @@ const CreateEvent = () => {
 
         const headers = lines[0].split(',').map(h => h.trim());
         const rows = lines.slice(1).map(line => line.split(',').map(c => c.trim()));
-
+        
         setCsvData({ headers, rows });
         setImporting('CSV_MAPPING');
       };
@@ -144,37 +144,44 @@ const CreateEvent = () => {
     setMapping({ name: -1, phone: -1, pledge: -1 });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !user) return;
+    if (!formData.name) return alert("Please enter an event name");
 
-    setSaving(true);
+    const userData = JSON.parse(localStorage.getItem('nova_user') || '{}');
+    const finalType = formData.type === 'Other' ? formData.customType || 'Custom Event' : formData.type;
+    
+    const newEventData: Omit<Event, 'id'> = {
+      ownerId: userData.id || 'anon',
+      name: formData.name,
+      type: finalType,
+      date: formData.date,
+      locations: formData.locations,
+      visibility: formData.visibility,
+      contributionOptions: [
+        { id: 'opt-1', name: 'Standard', amount: 20000 },
+        { id: 'opt-2', name: 'VIP', amount: 50000 }
+      ]
+    };
 
-    try {
-      const finalType = formData.type === 'Other' ? formData.customType || 'Custom Event' : formData.type;
+    const savedEvent = addEvent(newEventData);
 
-      const event = await EventService.createEvent(user.id, {
-        name: formData.name,
-        type: finalType,
-        eventDate: formData.date,
-        locations: formData.locations
-      });
-
-      const validGuests = guestEntries.filter(g => g.name && g.phone);
-      if (validGuests.length > 0) {
-        await GuestService.bulkCreateGuests(event.id, validGuests.map(g => ({
-          name: g.name,
-          phone: g.phone,
-          pledgeAmount: g.pledge || 20000
-        })));
+    guestEntries.forEach(entry => {
+      if (entry.name && entry.phone) {
+        const guest: Guest = {
+          id: `g-${Math.random().toString(36).substr(2, 9)}`,
+          eventId: savedEvent.id,
+          name: entry.name,
+          phone: entry.phone,
+          optionId: 'opt-1',
+          pledgeAmount: entry.pledge || 20000,
+          paymentStatus: PaymentStatus.NOT_STARTED
+        };
+        addGuest(guest);
       }
+    });
 
-      navigate(`/design-card/${event.id}`);
-    } catch (error: any) {
-      alert(`Error creating event: ${error.message}`);
-    } finally {
-      setSaving(false);
-    }
+    navigate(`/design-card/${savedEvent.id}`);
   };
 
   return (
@@ -186,6 +193,7 @@ const CreateEvent = () => {
         <h1 className="text-2xl font-black italic nova-serif">Event Setup</h1>
       </header>
 
+      {/* CSV Mapping Interface */}
       {importing === 'CSV_MAPPING' && csvData && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="glass-card w-full max-w-sm rounded-[2.5rem] p-8 space-y-8 border-gold-500/20 shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
@@ -197,7 +205,7 @@ const CreateEvent = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[9px] text-zinc-500 font-black uppercase tracking-widest ml-1">Guest Name Column</label>
-                <select
+                <select 
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-gold-500"
                   value={mapping.name}
                   onChange={e => setMapping({...mapping, name: parseInt(e.target.value)})}
@@ -209,7 +217,7 @@ const CreateEvent = () => {
 
               <div className="space-y-2">
                 <label className="text-[9px] text-zinc-500 font-black uppercase tracking-widest ml-1">Phone Number Column</label>
-                <select
+                <select 
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-gold-500"
                   value={mapping.phone}
                   onChange={e => setMapping({...mapping, phone: parseInt(e.target.value)})}
@@ -221,7 +229,7 @@ const CreateEvent = () => {
 
               <div className="space-y-2">
                 <label className="text-[9px] text-zinc-500 font-black uppercase tracking-widest ml-1">Pledge Amount (Optional)</label>
-                <select
+                <select 
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-gold-500"
                   value={mapping.pledge}
                   onChange={e => setMapping({...mapping, pledge: parseInt(e.target.value)})}
@@ -233,13 +241,13 @@ const CreateEvent = () => {
             </div>
 
             <div className="pt-4 flex flex-col gap-3">
-              <button
+              <button 
                 onClick={executeCsvImport}
                 className="w-full nova-gradient py-4 rounded-xl text-black font-black uppercase tracking-widest text-[10px] shadow-xl"
               >
                 Import Guests Now
               </button>
-              <button
+              <button 
                 onClick={() => { setImporting(null); setCsvData(null); }}
                 className="w-full py-4 text-[9px] font-black text-zinc-500 uppercase tracking-widest"
               >
@@ -254,12 +262,12 @@ const CreateEvent = () => {
         <section className="glass-card p-8 rounded-[2.5rem] space-y-8">
           <div className="space-y-2">
             <label className="text-[10px] text-zinc-500 uppercase font-black tracking-widest ml-1">Event Name</label>
-            <input
-              required
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all font-medium placeholder:text-zinc-700"
-              placeholder="e.g. Harusi ya Juma & Sarah"
-              value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+            <input 
+              required 
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all font-medium placeholder:text-zinc-700" 
+              placeholder="e.g. Harusi ya Juma & Sarah" 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})} 
             />
           </div>
 
@@ -283,38 +291,61 @@ const CreateEvent = () => {
 
             {formData.type === 'Other' && (
               <div className="animate-in slide-in-from-top-2 duration-300">
-                <input
-                  required
-                  className="w-full bg-black/40 border border-gold-500/30 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all font-medium text-xs placeholder:text-zinc-700"
-                  placeholder="Enter custom event type name..."
-                  value={formData.customType}
-                  onChange={e => setFormData({...formData, customType: e.target.value})}
+                <input 
+                  required 
+                  className="w-full bg-black/40 border border-gold-500/30 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all font-medium text-xs placeholder:text-zinc-700" 
+                  placeholder="Enter custom event type name..." 
+                  value={formData.customType} 
+                  onChange={e => setFormData({...formData, customType: e.target.value})} 
                 />
               </div>
             )}
           </div>
 
+          {/* Event Visibility Added Back */}
+          <div className="space-y-4">
+            <label className="text-[10px] text-zinc-500 uppercase font-black tracking-widest ml-1">Event Visibility</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: EventVisibility.PRIVATE, label: 'Private', icon: 'fa-lock' },
+                { id: EventVisibility.PUBLIC, label: 'Public', icon: 'fa-globe' },
+                { id: EventVisibility.HYBRID, label: 'Hybrid', icon: 'fa-users' }
+              ].map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setFormData({...formData, visibility: v.id})}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${formData.visibility === v.id ? 'bg-gold-500/10 border-gold-500 text-gold-500' : 'bg-black/20 border-white/5 text-zinc-500 opacity-60'}`}
+                >
+                  <i className={`fas ${v.icon} text-xs`}></i>
+                  <span className="text-[8px] font-black uppercase tracking-widest">{v.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] text-zinc-500 uppercase font-black tracking-widest ml-1">Event Date</label>
-            <input
-              type="date"
+            <input 
+              type="date" 
               required
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all [color-scheme:dark]"
-              value={formData.date}
-              onChange={e => setFormData({...formData, date: e.target.value})}
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-gold-500 transition-all [color-scheme:dark]" 
+              value={formData.date} 
+              onChange={e => setFormData({...formData, date: e.target.value})} 
             />
           </div>
 
+          {/* Location Search Powered by Gemini/Maps */}
           <div className="space-y-4 pt-2">
             <label className="text-[10px] text-zinc-500 uppercase font-black tracking-widest ml-1">Event Venue (Search Map)</label>
             <div className="relative">
               <div className="relative group">
                 <i className="fas fa-map-marked-alt absolute left-5 top-1/2 -translate-y-1/2 text-gold-500 text-xs transition-transform group-focus-within:scale-110"></i>
-                <input
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-12 py-4 outline-none focus:border-gold-500 transition-all font-medium placeholder:text-zinc-700 text-sm"
-                  placeholder="Type venue or area name..."
-                  value={locationQuery}
-                  onChange={e => setLocationQuery(e.target.value)}
+                <input 
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl pl-12 pr-12 py-4 outline-none focus:border-gold-500 transition-all font-medium placeholder:text-zinc-700 text-sm" 
+                  placeholder="Type venue or area name..." 
+                  value={locationQuery} 
+                  onChange={e => setLocationQuery(e.target.value)} 
                 />
                 {isSearchingLocation && (
                   <div className="absolute right-5 top-1/2 -translate-y-1/2">
@@ -360,8 +391,8 @@ const CreateEvent = () => {
                         <span className="text-[7px] text-zinc-500 uppercase font-black tracking-widest truncate">{loc.url}</span>
                       </div>
                     </div>
-                    <button
-                      type="button"
+                    <button 
+                      type="button" 
                       onClick={() => handleRemoveLocation(idx)}
                       className="w-8 h-8 flex items-center justify-center text-zinc-700 hover:text-red-500 transition-colors"
                     >
@@ -381,9 +412,9 @@ const CreateEvent = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <button
-              type="button"
-              onClick={handleImportCSV}
+            <button 
+              type="button" 
+              onClick={handleImportCSV} 
               className="group flex items-center justify-between bg-white/[0.03] border border-white/5 p-5 rounded-2xl haptic-press hover:bg-white/[0.08] transition-all"
             >
               <div className="flex items-center gap-4">
@@ -393,6 +424,42 @@ const CreateEvent = () => {
                 <div className="text-left">
                   <div className="text-[10px] font-black uppercase tracking-widest">CSV Spreadsheet</div>
                   <div className="text-[8px] text-zinc-500 uppercase font-bold">Import from Excel (Map Columns)</div>
+                </div>
+              </div>
+              <i className="fas fa-chevron-right text-[10px] text-zinc-700 group-hover:text-white"></i>
+            </button>
+
+            {/* Google Contacts Option Added Back */}
+            <button 
+              type="button" 
+              onClick={() => alert("Google Contacts sync coming soon!")} 
+              className="group flex items-center justify-between bg-white/[0.03] border border-white/5 p-5 rounded-2xl haptic-press hover:bg-white/[0.08] transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+                  <i className="fab fa-google"></i>
+                </div>
+                <div className="text-left">
+                  <div className="text-[10px] font-black uppercase tracking-widest">Google Contacts</div>
+                  <div className="text-[8px] text-zinc-500 uppercase font-bold">Sync from Google Account</div>
+                </div>
+              </div>
+              <i className="fas fa-chevron-right text-[10px] text-zinc-700 group-hover:text-white"></i>
+            </button>
+
+            {/* Device Contacts Option Added Back */}
+            <button 
+              type="button" 
+              onClick={() => alert("Device Contacts sync coming soon!")} 
+              className="group flex items-center justify-between bg-white/[0.03] border border-white/5 p-5 rounded-2xl haptic-press hover:bg-white/[0.08] transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                  <i className="fas fa-mobile-alt"></i>
+                </div>
+                <div className="text-left">
+                  <div className="text-[10px] font-black uppercase tracking-widest">Device Contacts</div>
+                  <div className="text-[8px] text-zinc-500 uppercase font-bold">Import from Phonebook</div>
                 </div>
               </div>
               <i className="fas fa-chevron-right text-[10px] text-zinc-700 group-hover:text-white"></i>
@@ -419,8 +486,8 @@ const CreateEvent = () => {
           </button>
         </section>
 
-        <button type="submit" disabled={saving} className="w-full nova-gradient py-6 rounded-2xl text-black font-black uppercase tracking-[0.2em] shadow-xl text-[11px] haptic-press disabled:opacity-50">
-          {saving ? 'Creating Event...' : 'Save & Design Card'}
+        <button type="submit" className="w-full nova-gradient py-6 rounded-2xl text-black font-black uppercase tracking-[0.2em] shadow-xl text-[11px] haptic-press">
+          Save & Design Card
         </button>
       </form>
     </div>

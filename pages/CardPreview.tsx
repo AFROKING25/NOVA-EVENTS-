@@ -4,7 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getStore } from '../data/store';
 import { Event } from '../types';
 
-// Fix: Removed React.FC to prevent children missing errors
 const CardPreview = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -21,7 +20,7 @@ const CardPreview = () => {
   const { cardDesign } = event;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20">
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700 pb-20 px-4">
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-black nova-text-gradient uppercase tracking-widest">Final Preview</h1>
         <p className="text-gray-500 text-[10px] uppercase tracking-[0.5em] font-black">STEP 3: REVIEW YOUR CARD LAYOUT</p>
@@ -31,16 +30,16 @@ const CardPreview = () => {
         <div 
           className="relative w-full bg-[#111] overflow-hidden select-none"
           style={{ 
-            aspectRatio: '1.414', // Maintain roughly A4 or common card size
+            aspectRatio: '1.414', 
             backgroundImage: `url(${cardDesign.backgroundImage})`,
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
           }}
         >
-          {/* Sample Name Render */}
+          {/* Sample Name Render - Matches styling in editor */}
           <div 
-            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-center overflow-hidden"
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-center overflow-hidden pointer-events-none"
             style={{ 
               left: `${cardDesign.namePosition.x}%`, 
               top: `${cardDesign.namePosition.y}%`, 
@@ -48,14 +47,14 @@ const CardPreview = () => {
               height: `${cardDesign.namePosition.h}%`
             }}
           >
-            <span className="text-lg md:text-3xl font-serif font-bold text-gray-800 tracking-tight drop-shadow-sm">
-                Ms. Sample Guest
+            <span className="text-sm md:text-3xl font-serif font-bold text-gray-800 tracking-tight drop-shadow-sm whitespace-nowrap">
+                Mrs. Sample Guest Name
             </span>
           </div>
 
-          {/* Sample QR Render */}
+          {/* Sample QR Render - High contrast for final check */}
           <div 
-            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center p-1 bg-white shadow-sm"
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center bg-white shadow-sm overflow-hidden pointer-events-none"
             style={{ 
               left: `${cardDesign.qrPosition.x}%`, 
               top: `${cardDesign.qrPosition.y}%`, 
@@ -63,7 +62,7 @@ const CardPreview = () => {
               height: `${cardDesign.qrPosition.h}%`
             }}
           >
-            <i className="fas fa-qrcode text-black text-6xl md:text-9xl opacity-90"></i>
+            <i className="fas fa-qrcode text-black text-4xl md:text-8xl opacity-90"></i>
           </div>
         </div>
 
@@ -73,10 +72,10 @@ const CardPreview = () => {
 
       <div className="flex flex-col md:flex-row gap-6 max-w-2xl mx-auto">
         <button 
-            onClick={() => navigate(`/design-card/${eventId}`)}
+            onClick={() => navigate(`/layout-editor/${eventId}`)}
             className="flex-1 bg-white/5 border border-white/10 text-white font-black uppercase tracking-[0.3em] py-6 rounded-[2rem] hover:bg-white/10 transition-all text-[11px]"
         >
-            <i className="fas fa-edit mr-3"></i> Edit Layout
+            <i className="fas fa-edit mr-3 text-gold-500"></i> Edit Layout
         </button>
         <button 
             onClick={() => navigate(`/setup-payments/${eventId}`)}

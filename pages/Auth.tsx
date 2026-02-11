@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
-import { AuthService } from '../src/lib/services/AuthService';
-import type { User } from '@supabase/supabase-js';
+import { registerUser, loginUser } from '../data/store';
+import { User } from '../types';
 
 interface AuthProps {
   onLogin: (user: User) => void;
@@ -12,54 +13,45 @@ const Auth = ({ onLogin }: AuthProps) => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '' });
   const [error, setError] = useState<string | null>(null);
 
-  const handleSocialAuth = async (provider: 'google') => {
+  const handleSocialStub = (provider: string) => {
     setLoading(true);
-    setError(null);
-    try {
-      await AuthService.signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Social authentication failed');
+    setTimeout(() => {
+      const mockUser = { name: `${provider} User`, email: `social@${provider}.com`, provider };
+      const user = registerUser(mockUser) || loginUser(mockUser.email);
+      if (user) onLogin(user);
       setLoading(false);
-    }
+    }, 1000);
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    try {
+    setTimeout(() => {
       if (mode === 'SIGNUP') {
-        const { user } = await AuthService.signUp({
+        const user = registerUser({
+          name: formData.name,
           email: formData.email,
           password: formData.password,
-          fullName: formData.name,
-          phone: formData.phone
+          phone: formData.phone,
+          provider: 'EMAIL'
         });
-
-        if (user) {
-          onLogin(user);
-        }
+        if (user) onLogin(user);
+        else setError("An account with this email already exists.");
       } else {
-        const { user } = await AuthService.signIn({
-          email: formData.email,
-          password: formData.password
-        });
-
-        if (user) {
-          onLogin(user);
-        }
+        const user = loginUser(formData.email, formData.password);
+        if (user) onLogin(user);
+        else setError("Invalid email or password.");
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
       setLoading(false);
-    }
+    }, 1200);
   };
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-12">
+        {/* Branding */}
         <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-1000">
           <div className="w-20 h-20 nova-gradient rounded-3xl flex items-center justify-center font-black text-black text-3xl mx-auto shadow-[0_20px_40px_rgba(212,175,55,0.3)] rotate-6">N</div>
           <div>
@@ -81,8 +73,11 @@ const Auth = ({ onLogin }: AuthProps) => {
           {mode === 'CHOICE' ? (
             <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
               <div className="space-y-3">
-                <button onClick={() => handleSocialAuth('google')} className="w-full bg-white text-black py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] transition-all text-sm shadow-xl">
+                <button onClick={() => handleSocialStub('Google')} className="w-full bg-white text-black py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] transition-all text-sm shadow-xl">
                   <i className="fab fa-google text-lg text-red-500"></i> Sign in with Google
+                </button>
+                <button onClick={() => handleSocialStub('Apple')} className="w-full bg-black text-white border border-white/20 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] transition-all text-sm shadow-xl">
+                  <i className="fab fa-apple text-xl"></i> Sign in with Apple
                 </button>
               </div>
 
@@ -102,7 +97,7 @@ const Auth = ({ onLogin }: AuthProps) => {
               <button type="button" onClick={() => setMode('CHOICE')} className="text-gold-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 mb-4 hover:gap-3 transition-all">
                 <i className="fas fa-arrow-left"></i> Back
               </button>
-
+              
               <div className="space-y-2">
                 <h2 className="text-2xl font-black uppercase tracking-tight">{mode === 'LOGIN' ? 'Welcome Back' : 'Create Account'}</h2>
                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">ENTER YOUR EXCLUSIVE CREDENTIALS</p>
@@ -112,21 +107,18 @@ const Auth = ({ onLogin }: AuthProps) => {
 
               <div className="space-y-4">
                 {mode === 'SIGNUP' && (
-                  <>
-                    <input required placeholder="FULL NAME" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:border-gold-500 outline-none transition-all text-sm font-bold uppercase" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                    <input placeholder="PHONE (OPTIONAL)" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:border-gold-500 outline-none transition-all text-sm font-medium" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                  </>
+                  <input required placeholder="DISPLAY NAME" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:border-gold-500 outline-none transition-all text-sm font-bold uppercase" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 )}
                 <input required type="email" placeholder="EMAIL ADDRESS" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:border-gold-500 outline-none transition-all text-sm font-medium" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                 <input required type="password" placeholder="PASSWORD" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:border-gold-500 outline-none transition-all text-sm font-medium" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               </div>
 
-              <button type="submit" disabled={loading} className="w-full nova-gradient text-black font-black uppercase tracking-[0.2em] py-6 rounded-2xl shadow-2xl hover:scale-[1.02] transition-all text-xs disabled:opacity-50">
+              <button type="submit" className="w-full nova-gradient text-black font-black uppercase tracking-[0.2em] py-6 rounded-2xl shadow-2xl hover:scale-[1.02] transition-all text-xs">
                 {mode === 'LOGIN' ? 'AUTHORIZE ACCESS' : 'RESERVE IDENTITY'}
               </button>
 
               <p className="text-center text-[9px] text-gray-600 font-bold uppercase tracking-widest">
-                {mode === 'LOGIN' ? "DON'T HAVE AN ACCOUNT?" : "ALREADY A MEMBER?"}
+                {mode === 'LOGIN' ? "DON'T HAVE AN ACCOUNT?" : "ALREADY A MEMBER?"} 
                 <button type="button" onClick={() => setMode(mode === 'LOGIN' ? 'SIGNUP' : 'LOGIN')} className="text-gold-500 ml-2">CLICK HERE</button>
               </p>
             </form>

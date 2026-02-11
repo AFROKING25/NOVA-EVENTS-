@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStore, saveStore } from '../data/store';
@@ -190,9 +191,9 @@ const CardLayoutEditor = () => {
 
             {image && (
                 <>
-                {/* Draggable & Resizable Name Box */}
+                {/* Draggable & Resizable Name Box - Now with Stylized Sample Name */}
                 <div 
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 border-2 rounded-xl transition-all shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center ${activeElement === 'NAME' ? 'border-gold-500 bg-gold-500/30 z-20 scale-105' : 'border-white/10 bg-black/40 text-white z-10'}`}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 border-2 rounded-xl transition-all shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center overflow-hidden ${activeElement === 'NAME' ? 'border-gold-500 bg-gold-500/10 z-20 scale-[1.02]' : 'border-dashed border-white/30 bg-black/10 z-10'}`}
                     style={{ 
                         left: `${nameData.x}%`, 
                         top: `${nameData.y}%`, 
@@ -202,22 +203,25 @@ const CardLayoutEditor = () => {
                     onMouseDown={(e) => handlePointerDown(e, 'NAME', 'DRAG')}
                     onTouchStart={(e) => handlePointerDown(e, 'NAME', 'DRAG')}
                 >
-                    <div className="flex flex-col items-center justify-center text-center p-1 overflow-hidden pointer-events-none">
-                        <span className="text-[7px] font-black uppercase tracking-widest text-gold-500 mb-1">GUEST NAME SLOT</span>
+                    <div className="flex flex-col items-center justify-center text-center p-2 w-full h-full pointer-events-none">
+                        <span className="text-[10px] md:text-xl font-serif font-black text-white/90 drop-shadow-lg whitespace-nowrap">
+                            Mrs. Sample Guest Name
+                        </span>
+                        <div className="absolute top-1 left-1 bg-gold-500 text-black text-[6px] font-black uppercase px-1 rounded-sm opacity-60">Alignment slot</div>
                     </div>
                     {/* Resize Handle */}
                     <div 
-                        className="absolute bottom-0 right-0 w-8 h-8 bg-gold-500 rounded-tl-xl rounded-br-xl flex items-center justify-center cursor-nwse-resize active:scale-90 shadow-lg"
+                        className="absolute bottom-0 right-0 w-6 h-6 bg-gold-500/80 rounded-tl-lg flex items-center justify-center cursor-nwse-resize active:scale-90 shadow-lg z-30"
                         onMouseDown={(e) => handlePointerDown(e, 'NAME', 'RESIZE')}
                         onTouchStart={(e) => handlePointerDown(e, 'NAME', 'RESIZE')}
                     >
-                        <i className="fas fa-expand-alt text-[10px] text-black"></i>
+                        <i className="fas fa-expand-alt text-[8px] text-black"></i>
                     </div>
                 </div>
 
-                {/* Draggable & Resizable QR Slot */}
+                {/* Draggable & Resizable QR Slot - Now with high contrast QR representation */}
                 <div 
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 border-2 rounded-2xl transition-all shadow-2xl cursor-grab active:cursor-grabbing flex flex-col items-center justify-center ${activeElement === 'QR' ? 'border-gold-500 bg-gold-500/30 z-20 scale-105' : 'border-white/10 bg-black/40 text-white z-10'}`}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 border-2 rounded-2xl transition-all shadow-2xl cursor-grab active:cursor-grabbing flex flex-col items-center justify-center overflow-hidden ${activeElement === 'QR' ? 'border-gold-500 bg-gold-500/10 z-20 scale-[1.02]' : 'border-dashed border-white/30 bg-black/10 z-10'}`}
                     style={{ 
                         left: `${qrData.x}%`, 
                         top: `${qrData.y}%`, 
@@ -227,15 +231,16 @@ const CardLayoutEditor = () => {
                     onMouseDown={(e) => handlePointerDown(e, 'QR', 'DRAG')}
                     onTouchStart={(e) => handlePointerDown(e, 'QR', 'DRAG')}
                 >
-                    <i className="fas fa-qrcode text-2xl opacity-20 mb-1 pointer-events-none"></i>
-                    <span className="text-[7px] font-black uppercase tracking-widest text-gold-500 pointer-events-none">QR SLOT</span>
+                    <div className="bg-white w-full h-full flex items-center justify-center pointer-events-none">
+                        <i className="fas fa-qrcode text-black text-2xl md:text-5xl opacity-80"></i>
+                    </div>
                     {/* Resize Handle */}
                     <div 
-                        className="absolute bottom-0 right-0 w-8 h-8 bg-gold-500 rounded-tl-xl rounded-br-2xl flex items-center justify-center cursor-nwse-resize active:scale-90 shadow-lg"
+                        className="absolute bottom-0 right-0 w-6 h-6 bg-gold-500/80 rounded-tl-lg flex items-center justify-center cursor-nwse-resize active:scale-90 shadow-lg z-30"
                         onMouseDown={(e) => handlePointerDown(e, 'QR', 'RESIZE')}
                         onTouchStart={(e) => handlePointerDown(e, 'QR', 'RESIZE')}
                     >
-                        <i className="fas fa-expand-alt text-[10px] text-black"></i>
+                        <i className="fas fa-expand-alt text-[8px] text-black"></i>
                     </div>
                 </div>
                 </>

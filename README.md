@@ -1,20 +1,22 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# NOVA EVENTS by AFROKING™
 
-This contains everything you need to run your app locally.
+A premium event management and contribution tracking platform for Tanzanian events.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1ul50LOmK7MKPuXOgfXVVHPA8ed65a13W
+## Features
+- **Intelligent Guest Import**: Bulk import via CSV with intelligent column mapping.
+- **Precision Card Design**: Custom drag-and-drop layout for invitation cards and QR codes.
+- **Smart Grounding**: Location search powered by Gemini Maps grounding.
+- **Unified Dashboard**: 4-panel summary (All Guests, Paid, Pledged, Unpaid) with real-time tracking.
 
-## Run Locally
+## Deployment
 
-**Prerequisites:**  Node.js
+### Vercel
+1. Push this code to GitHub.
+2. Connect your GitHub repo to Vercel.
+3. Add `API_KEY` to your Vercel Environment Variables.
+4. Deploy!
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Local Development
+1. `npm install`
+2. `npm run dev`
